@@ -991,12 +991,25 @@ public final class HttpEngine {
 
       case HTTP_PERM_REDIRECT:
       case HTTP_TEMP_REDIRECT:
-        // "If the 307 or 308 status code is received in response to a request other than GET
-        // or HEAD, the user agent MUST NOT automatically redirect the request"
-        if (!userRequest.method().equals("GET") && !userRequest.method().equals("HEAD")) {
-            return null;
-        }
-        // fall-through
+        // Does the client allow redirects?
+        if (!client.getFollowRedirects()) return null;
+
+        String redirectLocation = userResponse.header("Location");
+        if (redirectLocation == null) return null;
+        URL redirectUrl = new URL(userRequest.url(), redirectLocation);
+
+        // Don't follow redirects to unsupported protocols.
+        if (!redirectUrl.getProtocol().equals("https") && !redirectUrl.getProtocol().equals("http")) return null;
+
+        // If configured, don't follow redirects between SSL and non-SSL.
+        boolean redirectSameProtocol = redirectUrl.getProtocol().equals(userRequest.url().getProtocol());
+        if (!redirectSameProtocol && !client.getFollowSslRedirects()) return null;
+
+        // Redirects don't include a request body.
+        Request.Builder redirectRequestBuilder = userRequest.newBuilder();
+
+        return redirectRequestBuilder.url(redirectUrl).build();
+
       case HTTP_MULT_CHOICE:
       case HTTP_MOVED_PERM:
       case HTTP_MOVED_TEMP:

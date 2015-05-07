@@ -2090,14 +2090,12 @@ public final class URLConnectionTest {
       assertEquals("Page 2", response);
     } else if (method.equals("HEAD"))  {
       assertEquals("", response);
+    } else if (method.equals("POST")) {
+      assertEquals("ABCD", page1.getBody().readUtf8());
+      return;
     } else {
-      // Methods other than GET/HEAD shouldn't follow the redirect
-      if (method.equals("POST")) {
-        assertTrue(connection.getDoOutput());
-        assertEquals("ABCD", page1.getBody().readUtf8());
-      }
-      assertEquals(1, server.getRequestCount());
-      assertEquals("This page has moved!", response);
+      assertEquals(2, server.getRequestCount());
+      assertEquals("Page 2", response);
       return;
     }
 
